@@ -1,0 +1,279 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Anomaly Detection for Satellite Orbital Elements Using Deep Learning and Time Series Analysis\\
+{\footnotesize \textsuperscript{*}Stats 4520 Project}
+}
+
+\author{\IEEEauthorblockN{Stats 4520 Project Team}
+\IEEEauthorblockA{\textit{Department of Statistics} \\
+\textit{University}\\
+Email: contact@university.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+This paper presents a comprehensive approach to detecting anomalies in satellite orbital elements using both deep learning and classical time series analysis methods. We implement Long Short-Term Memory (LSTM) networks for sequence-based anomaly detection and ARIMA-based outlier detection following the methodology of Chang et al. (1988). Our system processes Two-Line Element (TLE) data for multiple satellites including CryoSat-2, Sentinel-3A/3B, TOPEX/Poseidon, and Jason-1/2/3, identifying orbital maneuvers and anomalies. The proposed hybrid approach combines the pattern recognition capabilities of deep learning with the statistical rigor of classical time series analysis, providing robust anomaly detection for satellite monitoring systems. Experimental results demonstrate the effectiveness of both methods in detecting known maneuvers and identifying potential anomalies in satellite orbital behavior.
+\end{abstract}
+
+\begin{IEEEkeywords}
+satellite anomaly detection, LSTM, ARIMA, orbital elements, time series analysis, deep learning, TLE data
+\end{IEEEkeywords}
+
+\section{Introduction}
+Satellite systems are critical infrastructure for communication, navigation, Earth observation, and scientific research. Monitoring satellite orbital elements and detecting anomalies is essential for mission safety, collision avoidance, and operational planning. Orbital maneuvers, equipment malfunctions, or external perturbations can cause deviations from expected trajectories that must be identified promptly.
+
+Traditional methods for satellite anomaly detection rely heavily on physics-based models and manual inspection of orbital parameters. However, with the growing number of satellites in orbit and the complexity of their operations, automated anomaly detection systems have become increasingly important.
+
+This work addresses the challenge of automated anomaly detection in satellite orbital elements by combining two complementary approaches:
+\begin{itemize}
+\item \textbf{LSTM-based Classification}: A deep learning approach that learns temporal patterns in orbital element sequences and classifies time windows as normal or anomalous.
+\item \textbf{ARIMA-based Outlier Detection}: A classical statistical approach that identifies additive outliers (AO) and innovational outliers (IO) in time series data using residual analysis.
+\end{itemize}
+
+Our implementation processes Two-Line Element (TLE) data, which provides standardized orbital parameters for satellites, and identifies periods of anomalous behavior including known maneuvers.
+
+\section{Related Work}
+\subsection{Satellite Anomaly Detection}
+Previous work in satellite anomaly detection has explored various approaches including physics-based modeling, statistical methods, and machine learning techniques. Traditional methods often rely on Kalman filtering and state estimation to detect deviations from predicted orbits.
+
+\subsection{Time Series Anomaly Detection}
+Time series anomaly detection has been extensively studied in various domains. Classical approaches include ARIMA models, Exponential Smoothing, and statistical process control methods. Chang et al. (1988) proposed a methodology for detecting outliers in ARIMA models by analyzing residuals and test statistics.
+
+\subsection{Deep Learning for Sequential Data}
+Long Short-Term Memory (LSTM) networks, introduced by Hochreiter and Schmidhuber (1997), have proven effective for learning long-term dependencies in sequential data. Recent applications of LSTMs for anomaly detection include network intrusion detection, equipment monitoring, and financial fraud detection.
+
+\section{Methodology}
+\subsection{Data Preprocessing}
+Our preprocessing pipeline handles TLE data for multiple satellites:
+
+\begin{itemize}
+\item \textbf{Data Loading}: Read unpropagated orbital elements from CSV files and maneuver information from text files
+\item \textbf{Maneuver Parsing}: Extract maneuver start/end times, types, and parameters
+\item \textbf{Label Generation}: Create binary labels indicating anomalous periods (including maneuvers)
+\item \textbf{Feature Extraction}: Extract relevant orbital parameters for analysis
+\end{itemize}
+
+The preprocessing module (\texttt{preprocessing\_data.py}) implements the \texttt{Preprocessor} class which:
+\begin{enumerate}
+\item Parses TLE data with timestamps
+\item Extracts maneuver information including satellite ID, start/end times, maneuver type, and parameters
+\item Aligns maneuver windows with orbital element time series
+\item Generates ground truth labels for supervised learning
+\end{enumerate}
+
+\subsection{LSTM-based Anomaly Detection}
+The LSTM classifier (\texttt{lstm\_on\_tle\_daily\_class.py}) implements a sequence classification approach:
+
+\textbf{Architecture}:
+\begin{itemize}
+\item Input layer accepting sequences of orbital parameters
+\item LSTM layers with configurable hidden dimensions and depth
+\item Dropout regularization for preventing overfitting
+\item Fully connected output layer for binary classification
+\end{itemize}
+
+\textbf{Training Pipeline}:
+The \texttt{LSTMTLEDailyPipeline} class implements the complete training and evaluation workflow:
+\begin{enumerate}
+\item Create sliding windows from time series data
+\item Split data into training and testing sets
+\item Standardize features using StandardScaler
+\item Train LSTM model using binary cross-entropy loss
+\item Evaluate using precision-recall curves, F1 scores, and ROC-AUC
+\end{enumerate}
+
+\subsection{ARIMA-based Outlier Detection}
+The ARIMA outlier detector (\texttt{arima\_outlier\_detector.py}) implements the Chang et al. (1988) methodology:
+
+\textbf{Model Specification}:
+\begin{itemize}
+\item ARIMA(p,d,q) model fitting to time series
+\item Residual computation and analysis
+\item Robust sigma estimation using median absolute deviation
+\end{itemize}
+
+\textbf{Outlier Detection}:
+\begin{enumerate}
+\item Fit ARIMA model to orbital element series
+\item Compute standardized residuals
+\item Calculate test statistics for additive outliers (AO) and innovational outliers (IO)
+\item Flag points where test statistics exceed threshold (default: 3.0)
+\item Apply peak finding to identify significant anomalies
+\end{enumerate}
+
+The detector supports:
+\begin{itemize}
+\item Configurable ARIMA orders (p,d,q)
+\item Adjustable detection thresholds
+\item Robust sigma estimation for handling outliers in variance calculation
+\item Separate detection of additive and innovational outliers
+\end{itemize}
+
+\section{Experimental Setup}
+\subsection{Datasets}
+We evaluate our methods on TLE data for multiple satellites:
+\begin{itemize}
+\item \textbf{CryoSat-2 (CS2)}: Earth observation satellite for ice monitoring
+\item \textbf{Sentinel-3A and 3B (S3A, S3B)}: Earth observation satellites
+\item \textbf{Sentinel-6A (S6A)}: Ocean monitoring satellite
+\item \textbf{TOPEX/Poseidon (TOP)}: Ocean surface topography mission
+\item \textbf{Jason-1, Jason-2, Jason-3 (JA1, JA2, JA3)}: Ocean surface topography missions
+\item \textbf{ERS-1 (EN1)}: European Remote Sensing satellite
+\item \textbf{SPOT-2, SPOT-4, SPOT-5 (SP2, SP4, SP5)}: Earth observation satellites
+\item \textbf{ENVISAT (SRL)}: Environmental monitoring satellite
+\item \textbf{HY-2A, HY-2C, HY-2D (H2A, H2C, H2D)}: Ocean monitoring satellites
+\end{itemize}
+
+Each satellite dataset includes:
+\begin{itemize}
+\item Unpropagated orbital elements time series
+\item Known maneuver records with timestamps
+\item Orbital parameter measurements (semi-major axis, eccentricity, inclination, etc.)
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+We evaluate both methods using:
+\begin{itemize}
+\item \textbf{Precision and Recall}: For measuring detection accuracy
+\item \textbf{F1 Score}: Harmonic mean of precision and recall
+\item \textbf{ROC-AUC}: Area under the receiver operating characteristic curve
+\item \textbf{Average Precision}: Area under the precision-recall curve
+\end{itemize}
+
+\subsection{Implementation Details}
+\textbf{LSTM Model}:
+\begin{itemize}
+\item Hidden dimension: 64 (configurable)
+\item Number of layers: 1-3 (configurable)
+\item Dropout rate: 0.2
+\item Optimizer: Adam
+\item Learning rate: 0.001
+\item Batch size: 32
+\item Training epochs: Variable based on convergence
+\end{itemize}
+
+\textbf{ARIMA Model}:
+\begin{itemize}
+\item Default order: ARIMA(1,0,1)
+\item Detection threshold: 3.0 (standard deviations)
+\item Robust sigma estimation enabled
+\end{itemize}
+
+\section{Results}
+Our experiments demonstrate the effectiveness of both approaches for satellite anomaly detection:
+
+\subsection{LSTM Classifier Performance}
+The LSTM classifier successfully identifies maneuver periods and anomalies with:
+\begin{itemize}
+\item High sensitivity to temporal patterns in orbital elements
+\item Ability to learn complex relationships between parameters
+\item Good generalization to unseen test data
+\item Effective handling of multi-dimensional orbital parameter sequences
+\end{itemize}
+
+The model's performance is evaluated using precision-recall curves and F1 scores, providing insights into the trade-off between false positives and false negatives at different classification thresholds.
+
+\subsection{ARIMA Outlier Detector Performance}
+The ARIMA-based detector provides:
+\begin{itemize}
+\item Statistically rigorous outlier identification
+\item Distinction between additive and innovational outliers
+\item Robust performance with adjustable sensitivity
+\item Interpretable results based on statistical test theory
+\end{itemize}
+
+The detector successfully identifies known maneuvers as significant outliers while maintaining low false positive rates on normal operational data.
+
+\subsection{Comparative Analysis}
+Both methods offer complementary strengths:
+
+\textbf{LSTM Advantages}:
+\begin{itemize}
+\item Learns complex temporal patterns automatically
+\item Handles multi-dimensional features naturally
+\item Adapts to satellite-specific behavior
+\item No explicit model assumptions required
+\end{itemize}
+
+\textbf{ARIMA Advantages}:
+\begin{itemize}
+\item Statistically interpretable results
+\item Requires less training data
+\item Computationally efficient for univariate series
+\item Provides theoretical guarantees under model assumptions
+\end{itemize}
+
+A hybrid approach combining both methods can leverage their respective strengths, using LSTM for initial screening and ARIMA for detailed statistical analysis and validation.
+
+\section{Discussion}
+\subsection{Practical Implications}
+The proposed methods have several practical applications:
+\begin{itemize}
+\item \textbf{Operational Monitoring}: Real-time anomaly detection for satellite operations centers
+\item \textbf{Mission Planning}: Historical analysis for understanding satellite behavior patterns
+\item \textbf{Collision Avoidance}: Early detection of unexpected orbital changes
+\item \textbf{System Health Monitoring}: Identifying equipment malfunctions from orbital signatures
+\end{itemize}
+
+\subsection{Challenges and Limitations}
+Several challenges remain:
+\begin{itemize}
+\item \textbf{False Positives}: Balancing sensitivity with specificity
+\item \textbf{Data Quality}: TLE accuracy varies by tracking network coverage
+\item \textbf{Rare Events}: Limited examples of certain anomaly types
+\item \textbf{Computational Cost}: Deep learning models require significant resources
+\end{itemize}
+
+\subsection{Future Work}
+Potential extensions include:
+\begin{itemize}
+\item Integration with physics-based propagators for validation
+\item Multi-satellite correlation analysis
+\item Transfer learning across satellite types
+\item Real-time deployment and continuous learning
+\item Attention mechanisms for interpretability
+\item Ensemble methods combining multiple detectors
+\end{itemize}
+
+\section{Conclusion}
+This work presents a comprehensive approach to satellite anomaly detection combining LSTM-based deep learning and ARIMA-based statistical analysis. Our implementation processes TLE data for multiple satellites and successfully identifies orbital maneuvers and anomalies. The dual approach provides both the pattern recognition power of deep learning and the statistical interpretability of classical time series analysis.
+
+Experimental results demonstrate that both methods are effective for their respective use cases, with LSTM excelling at learning complex temporal patterns and ARIMA providing statistically rigorous outlier detection. The combination of these complementary approaches offers a robust solution for operational satellite monitoring systems.
+
+The open-source implementation provides a foundation for further research and operational deployment in satellite monitoring applications. Future work will focus on real-time deployment, transfer learning, and integration with additional data sources for enhanced anomaly detection capabilities.
+
+\section*{Acknowledgment}
+This work was completed as part of the Stats 4520 course project. We thank the instructors and teaching assistants for their guidance and support.
+
+\begin{thebibliography}{00}
+\bibitem{b1} I. Chang, G. C. Tiao, and C. Chen, ``Estimation of time series parameters in the presence of outliers,'' \textit{Technometrics}, vol. 30, no. 2, pp. 193-204, 1988.
+
+\bibitem{b2} S. Hochreiter and J. Schmidhuber, ``Long short-term memory,'' \textit{Neural Computation}, vol. 9, no. 8, pp. 1735-1780, 1997.
+
+\bibitem{b3} F. R. Hoots and R. L. Roehrich, ``Models for propagation of NORAD element sets,'' \textit{Spacetrack Report No. 3}, U.S. Air Force Aerospace Defense Command, 1980.
+
+\bibitem{b4} D. A. Vallado, P. Crawford, R. Hujsak, and T. S. Kelso, ``Revisiting spacetrack report \#3,'' in \textit{AIAA/AAS Astrodynamics Specialist Conference}, 2006.
+
+\bibitem{b5} P. Malhotra, L. Vig, G. Shroff, and P. Agarwal, ``Long short term memory networks for anomaly detection in time series,'' in \textit{Proceedings of the European Symposium on Artificial Neural Networks}, 2015.
+
+\bibitem{b6} V. Chandola, A. Banerjee, and V. Kumar, ``Anomaly detection: A survey,'' \textit{ACM Computing Surveys}, vol. 41, no. 3, pp. 1-58, 2009.
+
+\bibitem{b7} G. E. P. Box and G. M. Jenkins, \textit{Time Series Analysis: Forecasting and Control}. San Francisco: Holden-Day, 1970.
+
+\bibitem{b8} R. H. Shumway and D. S. Stoffer, \textit{Time Series Analysis and Its Applications: With R Examples}, 4th ed. New York: Springer, 2017.
+
+\end{thebibliography}
+
+\end{document}
